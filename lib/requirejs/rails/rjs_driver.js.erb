@@ -4,7 +4,7 @@ cdn_pattern = Regexp.new("\\Ahttps?://")
 
 modifiedHash = build_config.select { |k, _| k != "modules" }
 pathsHash = modifiedHash["paths"]
-modifiedHash["dir"] = build_dir.to_s
+#modifiedHash["dir"] = build_dir.to_s
 modifiedHash["paths"] = Hash[
   pathsHash.map do |k, v|
     [k, v.is_a?(Array) || cdn_pattern.match(v) ? "empty:" : v]
@@ -14,10 +14,26 @@ modifiedHash["paths"] = Hash[
 JSON.pretty_generate(modifiedHash)
 %>;
 
-baseConfig.modules = [
-<% build_config["modules"].each do |m| %>
-  <%= JSON.pretty_generate(m) %>,
-<% end %>
-];
+baseConfig.name = 'almond';
+
+var name = '<%= build_config["modules"][0]["include"] %>';
+baseConfig.include = [name];
+baseConfig.insertRequire = [name];
+baseConfig.out = '<%= build_dir.to_s %>/' + name + '.js';
+
+baseConfig.onBuildRead = function (moduleName, path, contents) {
+  console.log('READ|' + moduleName + '|' + path);
+  return contents;
+};
+
+baseConfig.onBuildWrite = function (moduleName, path, contents) {
+  console.log('WRITE|' + moduleName + '|' + path);
+  return contents;
+}
+
+baseConfig.onModuleBundleComplete = function (data) {
+  console.log('BUNDLE|' + data.path);
+  console.log(JSON.stringify(data));
+}
 
 requirejs.optimize(baseConfig);
